@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  admin
+  retailer
+
+  @@map("user_role")
+}
+
+enum OrderStatus {
+  pending
+  approved
+  dispatched
+  rejected
+
+  @@map("order_status")
+}
+
+model Franchise {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name           String
+  phone          String   @default("")
+  whatsapp       String   @default("")
+  yearlyOrder    Decimal  @default(0) @map("yearly_order") @db.Decimal(14, 2)
+  aov            Decimal  @default(0) @db.Decimal(14, 2)
+  monthPotential Decimal  @default(0) @map("month_potential") @db.Decimal(14, 2)
+  thisMonth      Decimal  @default(0) @map("this_month") @db.Decimal(14, 2)
+  changePct      Decimal  @default(0) @map("change_pct") @db.Decimal(8, 2)
+  lastOrder      DateTime? @map("last_order") @db.Timestamptz(6)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profiles          Profile[]
+  orders            Order[]
+  retailerInventory RetailerInventory[]
+
+  @@map("franchises")
+}
+
+model Profile {
+  id          String   @id @db.Uuid
+  role        UserRole @default(retailer)
+  franchiseId String?  @map("franchise_id") @db.Uuid
+  displayName String?  @map("display_name")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  franchise Franchise? @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
+
+  @@index([franchiseId], map: "idx_profiles_franchise")
+  @@map("profiles")
+}
+
+model WholesalerStock {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  brand        String?
+  sku          String   @default("")
+  hsn          String   @default("")
+  gst          Decimal  @default(0) @db.Decimal(5, 2)
+  expiry       DateTime @db.Date
+  buyingPrice  Decimal  @default(0) @map("buying_price") @db.Decimal(12, 2)
+  sellingPrice Decimal  @default(0) @map("selling_price") @db.Decimal(12, 2)
+  packSize     String   @default("") @map("pack_size")
+  batch        String
+  shelf        String   @default("")
+  purchased    Int      @default(0)
+  sold         Int      @default(0)
+  qtyAvailable Int      @default(0) @map("qty_available")
+  qtyReserved  Int      @default(0) @map("qty_reserved")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([name, batch])
+  @@index([name], map: "idx_wholesaler_stock_name")
+  @@index([expiry], map: "idx_wholesaler_stock_expiry")
+  @@map("wholesaler_stock")
+}
+
+model Order {
+  id           String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  franchiseId  String      @map("franchise_id") @db.Uuid
+  status       OrderStatus @default(pending)
+  billNumber   String      @default("") @map("bill_number")
+  billDate     DateTime?   @map("bill_date") @db.Date
+  invoiceNote  String?     @map("invoice_note")
+  remark       String?
+  totalAmount  Decimal     @default(0) @map("total_amount") @db.Decimal(14, 2)
+  approvedAt   DateTime?   @map("approved_at") @db.Timestamptz(6)
+  dispatchedAt DateTime?   @map("dispatched_at") @db.Timestamptz(6)
+  rejectedAt   DateTime?   @map("rejected_at") @db.Timestamptz(6)
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  franchise         Franchise           @relation(fields: [franchiseId], references: [id], onDelete: Restrict)
+  lines             OrderLine[]
+  retailerInventory RetailerInventory[]
+
+  @@index([franchiseId], map: "idx_orders_franchise")
+  @@index([status], map: "idx_orders_status")
+  @@map("orders")
+}
+
+model OrderLine {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  orderId      String   @map("order_id") @db.Uuid
+  medicineName String   @map("medicine_name")
+  quantity     Int
+  batch        String   @default("")
+  pricePerUnit Decimal  @default(0) @map("price_per_unit") @db.Decimal(12, 2)
+  gst          Decimal  @default(0) @db.Decimal(5, 2)
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId], map: "idx_order_lines_order")
+  @@map("order_lines")
+}
+
+model RetailerInventory {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  franchiseId   String   @map("franchise_id") @db.Uuid
+  name          String
+  brand         String?
+  batch         String
+  expiry        DateTime @db.Date
+  hsn           String   @default("")
+  gst           Decimal  @default(0) @db.Decimal(5, 2)
+  packSize      String   @default("") @map("pack_size")
+  shelf         String   @default("")
+  qty           Int      @default(0)
+  sourceOrderId String?  @map("source_order_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  franchise   Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+  sourceOrder Order?    @relation(fields: [sourceOrderId], references: [id], onDelete: SetNull)
+
+  @@unique([franchiseId, name, batch])
+  @@index([franchiseId], map: "idx_retailer_inventory_franchise")
+  @@map("retailer_inventory")
+}
+
+model AuditLog {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id") @db.Uuid
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("audit_log")
+}

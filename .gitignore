@@ -1,0 +1,12 @@
+node_modules
+.next
+dist
+dist-inventory
+backend/dist
+frontend/dist
+.DS_Store
+*.local
+.env
+.env.local
+frontend/.env
+backend/.env

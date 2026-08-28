@@ -1,0 +1,36 @@
+---
+description: Preserve Mediculoes approved black-and-white UI/UX — do not redesign without explicit request
+alwaysApply: true
+---
+
+# Mediculoes UI/UX (approved — maintain)
+
+## Visual direction
+- **White-dominant monochrome**: backgrounds `#ffffff` / `#fafafa` / `#f5f5f5`; text `#0a0a0a` / `#525252`
+- **Accent = black/charcoal** only — no purple, pink, teal, or iridescent gradients
+- **Font**: Inter (display + body), IBM Plex Mono for numeric/table data
+- **Tokens live in** `src/index.css` — extend via `@theme` and utilities (`glass`, `gel`, `panel`, `text-gradient`), do not hardcode hex in new components
+
+## Layout chrome
+- **Console**: `AuroraField` (subtle white/gray mesh) + floating `Navbar` (white pill, black text, black active state)
+- **Landing**: `LandingHeader` glass pill nav; anchor links only (Home, About, Services)
+- **Pages**: `PageHeader` → content in `GlassPanel` / `TableShell` → `PaginationBar` footer
+
+## Components (reuse, don't reinvent)
+- **Buttons**: `gel` = primary (black), `glass`/`peach` = secondary, `icon-sm` for dense table actions
+- **Tables**: black `TableHeader`, white body, horizontal scroll via `Table`, sticky right action column when needed
+- **Forms**: `Input` with `border-line`, white bg; batch/qty edits in **dialogs**, not inline clutter
+- **Dropdowns**: white panel, `border-line` — no colored glass blur
+
+## Franchise order detail (reference pattern)
+- No assign column; batch from live `stock` via `stockBatchesForMedicine()`
+- Table is read-only; **Edit** opens dialog for quantity + batch with live taxable/subtotal preview
+- Validate qty against stock availability
+
+## Do not
+- Reintroduce sidebar layout, colored aurora orbs, gradient nav bars, or VitalCare teal theme
+- Add rainbow badges, purple table headers, or 44px icon button rows that break table layout
+- Replace established layout primitives without user approval
+
+## When adding new screens
+Match existing spacing (`space-y-5`), rounded corners (`rounded-[1.25rem]` / `rounded-full` pills), and monochrome hierarchy before introducing new patterns.
