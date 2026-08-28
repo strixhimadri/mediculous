@@ -1,13 +1,32 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+function getSupabaseEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  if (!url || !anonKey) {
+    return null
+  }
+
+  return { url, anonKey }
+}
+
+function isProtectedPath(path: string) {
+  if (path === "/inventory/login") return false
+  return path.startsWith("/app") || path.startsWith("/shop") || path.startsWith("/inventory")
+}
+
+export async function updateSession(request: NextRequest) {
+  const env = getSupabaseEnv()
+  if (!env) {
+    return NextResponse.next({ request })
+  }
+
+  try {
+    let supabaseResponse = NextResponse.next({ request })
+
+    const supabase = createServerClient(env.url, env.anonKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -20,30 +39,30 @@ export async function updateSession(request: NextRequest) {
           )
         },
       },
-    },
-  )
+    })
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-  const path = request.nextUrl.pathname
-  const isPublic = path === "/" || path === "/login" || path === "/inventory/login"
-  const isProtected =
-    path.startsWith("/app") || path.startsWith("/shop") || path.startsWith("/inventory")
+    const path = request.nextUrl.pathname
 
-  if (!user && isProtected) {
-    const url = request.nextUrl.clone()
-    url.pathname = path.startsWith("/inventory") ? "/inventory/login" : "/login"
-    url.searchParams.set("redirect", path)
-    return NextResponse.redirect(url)
+    if (!user && isProtectedPath(path)) {
+      const url = request.nextUrl.clone()
+      url.pathname = path.startsWith("/inventory") ? "/inventory/login" : "/login"
+      url.searchParams.set("redirect", path)
+      return NextResponse.redirect(url)
+    }
+
+    if (user && (path === "/login" || path === "/inventory/login")) {
+      const url = request.nextUrl.clone()
+      url.pathname = "/app"
+      return NextResponse.redirect(url)
+    }
+
+    return supabaseResponse
+  } catch (error) {
+    console.error("[middleware] session update failed:", error)
+    return NextResponse.next({ request })
   }
-
-  if (user && (path === "/login" || path === "/inventory/login")) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/app"
-    return NextResponse.redirect(url)
-  }
-
-  return supabaseResponse
 }
