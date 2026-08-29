@@ -12,9 +12,8 @@ import {
   type ReactNode,
 } from "react"
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
-import { fetchAuthProfile } from "@/lib/api/http"
+import { fetchAuthProfileWithError } from "@/lib/api/http"
 import { getSupabase, isSupabaseConfigured } from "@/lib/auth/client"
-import { invalidateProfileCache } from "@/lib/auth/profile-cache"
 import type { UserRole } from "@/types/database"
 
 export type AuthUser = {
@@ -40,9 +39,17 @@ type AuthState = {
 
 const AuthCtx = createContext<AuthState | null>(null)
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 async function hydrateUser(session: Session): Promise<AuthUser | null> {
-  const profile = await fetchAuthProfile()
-  if (profile) return profile
+  // After client sign-in, auth cookies may not be readable by API routes immediately.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { profile } = await fetchAuthProfileWithError()
+    if (profile) return profile
+    if (attempt < 4) await sleep(80 * (attempt + 1))
+  }
 
   const supabase = getSupabase()
   await supabase.auth.signOut()
@@ -64,9 +71,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(null)
       return
     }
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => null)
     const supabase = getSupabase()
     await supabase.auth.signOut()
-    invalidateProfileCache()
     setUser(null)
     setSession(null)
     setLoading(false)
@@ -161,29 +168,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
         }
       }
-      const supabase = getSupabase()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      })
-      if (error) return { error: error.message }
 
-      if (data.session) {
-        const nextUser = await hydrateUser(data.session)
-        setSession(data.session)
-        setUser(nextUser)
-        setLoading(false)
-        if (!nextUser) {
-          await supabase.auth.signOut()
-          return {
-            error: "Account is inactive or not linked to a franchise. Contact your administrator.",
-          }
-        }
-        return { error: null, user: nextUser }
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      })
+
+      const body = (await res.json().catch(() => ({}))) as {
+        user?: AuthUser
+        error?: string
       }
 
+      if (!res.ok) {
+        const message = body.error ?? "Sign in failed"
+        return {
+          error:
+            message === "Account is inactive"
+              ? "Account is inactive or not linked to a franchise. Contact your administrator."
+              : message,
+        }
+      }
+
+      const nextUser = body.user ?? null
+      if (!nextUser) {
+        return { error: "Sign in failed" }
+      }
+
+      const supabase = getSupabase()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      setSession(session)
+      setUser(nextUser)
       setLoading(false)
-      return { error: null }
+      return { error: null, user: nextUser }
     },
     [configured],
   )

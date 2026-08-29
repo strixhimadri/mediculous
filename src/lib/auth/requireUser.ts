@@ -24,33 +24,42 @@ async function maybePromoteSuperAdmin(userId: string, email: string, role: UserR
 export async function requireUser(): Promise<AuthContext> {
   const supabase = await createClient()
   const {
-    data: { session },
+    data: { user },
     error,
-  } = await supabase.auth.getSession()
+  } = await supabase.auth.getUser()
 
-  if (error || !session?.user) {
+  if (error || !user) {
     throw AppError.unauthorized("Missing or invalid session")
   }
 
-  const cached = getCachedProfile(session.user.id)
+  const cached = getCachedProfile(user.id)
   if (cached) return cached
 
-  let profile = await prisma.profile.findUnique({ where: { id: session.user.id } })
+  let profile = await prisma.profile.findUnique({ where: { id: user.id } })
   if (!profile) {
     throw AppError.forbidden("Profile not found")
   }
+
+  const email = user.email ?? ""
+
+  // Allowlisted developers may start inactive (new signups default to inactive).
+  if (!profile.active && isAllowlistedDeveloper(email)) {
+    await prisma.$executeRaw`SELECT public.promote_super_admin(${user.id}::uuid)`
+    invalidateProfileCache(user.id)
+    profile = await prisma.profile.findUniqueOrThrow({ where: { id: user.id } })
+  }
+
   if (!profile.active) {
     throw AppError.forbidden("Account is inactive")
   }
 
-  const email = session.user.email ?? ""
-  const role = await maybePromoteSuperAdmin(session.user.id, email, profile.role)
+  const role = await maybePromoteSuperAdmin(user.id, email, profile.role)
   if (role !== profile.role) {
-    profile = await prisma.profile.findUniqueOrThrow({ where: { id: session.user.id } })
+    profile = await prisma.profile.findUniqueOrThrow({ where: { id: user.id } })
   }
 
   const ctx: AuthContext = {
-    userId: session.user.id,
+    userId: user.id,
     email,
     role: profile.role,
     franchiseId: profile.franchiseId,
@@ -58,7 +67,7 @@ export async function requireUser(): Promise<AuthContext> {
     mustChangePassword: profile.mustChangePassword,
   }
 
-  setCachedProfile(session.user.id, ctx)
+  setCachedProfile(user.id, ctx)
   return ctx
 }
 

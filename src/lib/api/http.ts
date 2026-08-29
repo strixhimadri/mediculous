@@ -29,7 +29,7 @@ export async function apiFetch<T = unknown>(path: string, options: RequestInit =
   return res.json() as Promise<T>
 }
 
-export async function fetchAuthProfile(): Promise<{
+export type AuthProfile = {
   id: string
   email: string
   role: "admin" | "retailer" | "super_admin"
@@ -37,22 +37,23 @@ export async function fetchAuthProfile(): Promise<{
   displayName: string | null
   mustChangePassword: boolean
   isSuperAdmin: boolean
-} | null> {
+}
+
+export async function fetchAuthProfile(): Promise<AuthProfile | null> {
+  const result = await fetchAuthProfileWithError()
+  return result.profile
+}
+
+export async function fetchAuthProfileWithError(): Promise<{
+  profile: AuthProfile | null
+  error: string | null
+}> {
   try {
-    const data = await apiFetch<{
-      user: {
-        id: string
-        email: string
-        role: "admin" | "retailer" | "super_admin"
-        franchiseId: string | null
-        displayName: string | null
-        mustChangePassword: boolean
-        isSuperAdmin: boolean
-      }
-    }>("/api/auth/me")
-    return data.user
-  } catch {
-    return null
+    const data = await apiFetch<{ user: AuthProfile }>("/api/auth/me")
+    return { profile: data.user, error: null }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to load profile"
+    return { profile: null, error: message }
   }
 }
 

@@ -1,9 +1,56 @@
 import { createClient } from "@supabase/supabase-js"
+import { createClient as createServerClient } from "@/lib/auth/server"
 import { createAdminClient } from "@/lib/auth/admin"
 import { invalidateProfileCache } from "@/lib/auth/profile-cache"
 import type { AuthContext } from "@/lib/auth/requireUser"
+import { requireUser } from "@/lib/auth/requireUser"
+import { isSuperAdminRole } from "@/lib/auth/roles"
 import { prisma } from "@/lib/db/prisma"
 import { AppError } from "@/lib/errors"
+
+export type AuthProfile = {
+  id: string
+  email: string
+  role: AuthContext["role"]
+  franchiseId: string | null
+  displayName: string | null
+  mustChangePassword: boolean
+  isSuperAdmin: boolean
+}
+
+function toAuthProfile(ctx: AuthContext): AuthProfile {
+  return {
+    id: ctx.userId,
+    email: ctx.email,
+    role: ctx.role,
+    franchiseId: ctx.franchiseId,
+    displayName: ctx.displayName,
+    mustChangePassword: ctx.mustChangePassword,
+    isSuperAdmin: isSuperAdminRole(ctx.role),
+  }
+}
+
+export async function signIn(email: string, password: string): Promise<AuthProfile> {
+  const supabase = await createServerClient()
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  })
+
+  if (error) {
+    throw AppError.unauthorized(error.message)
+  }
+
+  invalidateProfileCache()
+  const ctx = await requireUser()
+  return toAuthProfile(ctx)
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = await createServerClient()
+  await supabase.auth.signOut()
+  invalidateProfileCache()
+}
 
 export async function changePassword(
   ctx: AuthContext,
