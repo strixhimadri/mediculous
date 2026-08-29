@@ -35,6 +35,17 @@ export function handleApiError(err: unknown): Response {
 
   if (err instanceof Error) {
     console.error("[API Error]", err)
+
+    if (err.message.includes("database string is invalid") || err.message.includes("P1001")) {
+      return Response.json(
+        {
+          error:
+            "Database connection failed. Check DATABASE_URL and DIRECT_URL in Vercel (no quotes, use Supabase pooler on port 6543 with ?pgbouncer=true).",
+        },
+        { status: 503 },
+      )
+    }
+
     return Response.json({ error: err.message }, { status: 500 })
   }
 

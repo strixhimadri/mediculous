@@ -1,7 +1,19 @@
 import { withHandler } from "@/lib/api/handler"
-import { requireUser } from "@/lib/auth/requireUser"
+import { prisma } from "@/lib/db/prisma"
 import { jsonOk } from "@/lib/errors"
 
 export const GET = withHandler(async () => {
-  return jsonOk({ ok: true, service: "mediculoes-api", timestamp: new Date().toISOString() })
+  let db: "ok" | "error" = "ok"
+  try {
+    await prisma.$queryRaw`SELECT 1`
+  } catch {
+    db = "error"
+  }
+
+  return jsonOk({
+    ok: db === "ok",
+    service: "mediculoes-api",
+    db,
+    timestamp: new Date().toISOString(),
+  })
 })
