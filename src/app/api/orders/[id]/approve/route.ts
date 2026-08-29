@@ -1,6 +1,6 @@
 import { withHandler } from "@/lib/api/handler"
 import { requireAdmin, requireUser } from "@/lib/auth/requireUser"
-import { jsonNoContent } from "@/lib/errors"
+import { jsonOk } from "@/lib/errors"
 import * as ordersService from "@/lib/services/orders.service"
 import { orderApproveSchema } from "@/lib/validators"
 
@@ -9,7 +9,7 @@ export const POST = withHandler(async (req, { params }) => {
   requireAdmin(ctx)
   const { id } = await params
   const body = orderApproveSchema.parse(await req.json())
-  await ordersService.approveOrder(
+  const order = await ordersService.approveOrder(
     ctx,
     id,
     body.lines,
@@ -17,5 +17,5 @@ export const POST = withHandler(async (req, { params }) => {
     body.billDate ?? new Date().toISOString().slice(0, 10),
     body.invoiceNote,
   )
-  return jsonNoContent()
+  return jsonOk({ order })
 })

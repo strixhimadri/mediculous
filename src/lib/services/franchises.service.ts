@@ -35,7 +35,7 @@ export async function updateFranchise(_ctx: AuthContext, id: string, body: Recor
   const existing = await prisma.franchise.findUnique({ where: { id } })
   if (!existing) throw AppError.notFound("Franchise not found")
 
-  await prisma.franchise.update({
+  const row = await prisma.franchise.update({
     where: { id },
     data: {
       name: String(body.name),
@@ -49,12 +49,11 @@ export async function updateFranchise(_ctx: AuthContext, id: string, body: Recor
       lastOrder: body.lastOrder ? new Date(String(body.lastOrder)) : null,
     },
   })
+
+  return mapFranchiseRow(row)
 }
 
 export async function deleteFranchise(_ctx: AuthContext, id: string) {
-  const existing = await prisma.franchise.findUnique({ where: { id } })
-  if (!existing) throw AppError.notFound("Franchise not found")
-
   const linkedProfiles = await prisma.profile.findMany({
     where: { franchiseId: id },
     select: { id: true },
@@ -64,9 +63,11 @@ export async function deleteFranchise(_ctx: AuthContext, id: string) {
 
   if (linkedProfiles.length) {
     const admin = createAdminClient()
-    await Promise.all(
+    void Promise.all(
       linkedProfiles.map((profile) =>
-        admin.auth.admin.deleteUser(profile.id).catch(() => undefined),
+        admin.auth.admin.deleteUser(profile.id).catch((err) => {
+          console.error("[deleteFranchise] failed to delete auth user", profile.id, err)
+        }),
       ),
     )
   }

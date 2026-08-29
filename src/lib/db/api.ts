@@ -75,8 +75,8 @@ export async function insertFranchise(row: FranchiseImportRow): Promise<Franchis
   })
 }
 
-export async function updateFranchiseRow(id: string, row: FranchiseImportRow): Promise<void> {
-  await apiFetch(`/api/franchises/${id}`, {
+export async function updateFranchiseRow(id: string, row: FranchiseImportRow): Promise<Franchise> {
+  return apiFetch<Franchise>(`/api/franchises/${id}`, {
     method: "PATCH",
     body: JSON.stringify(row),
   })
@@ -98,11 +98,12 @@ export async function fetchRetailerOrders(franchiseId: string): Promise<Franchis
 export async function updateOrderMeta(
   orderId: string,
   patch: { billNumber?: string; billDate?: string; invoiceNote?: string; remark?: string; totalAmount?: number },
-): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/meta`, {
+): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/meta`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   })
+  return data.order
 }
 
 export async function approveOrderRpc(
@@ -111,22 +112,27 @@ export async function approveOrderRpc(
   billNumber: string,
   billDate: string,
   invoiceNote?: string,
-): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/approve`, {
+): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/approve`, {
     method: "POST",
     body: JSON.stringify({ lines, billNumber, billDate, invoiceNote }),
   })
+  return data.order
 }
 
-export async function dispatchOrderRpc(orderId: string): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/dispatch`, { method: "POST" })
+export async function dispatchOrderRpc(orderId: string): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/dispatch`, {
+    method: "POST",
+  })
+  return data.order
 }
 
-export async function rejectOrderRpc(orderId: string, reason?: string): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/reject`, {
+export async function rejectOrderRpc(orderId: string, reason?: string): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/reject`, {
     method: "POST",
     body: JSON.stringify({ reason }),
   })
+  return data.order
 }
 
 export async function deleteOrder(orderId: string): Promise<void> {
@@ -135,50 +141,57 @@ export async function deleteOrder(orderId: string): Promise<void> {
 
 export async function submitRetailerOrder(
   lines: { medicineName: string; quantity: number }[],
-): Promise<string> {
-  const result = await apiFetch<{ orderId: string }>("/api/orders/submit", {
+): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>("/api/orders/submit", {
     method: "POST",
     body: JSON.stringify({ lines }),
   })
-  return result.orderId
+  return data.order
 }
 
 export async function updateOrderLineLocal(
   orderId: string,
   lineId: string,
   patch: Partial<OrderLine>,
-): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/lines/${lineId}`, {
+): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/lines/${lineId}`, {
     method: "PATCH",
     body: JSON.stringify(patch),
   })
+  return data.order
 }
 
-export async function removeOrderLine(orderId: string, lineId: string): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/lines/${lineId}`, { method: "DELETE" })
+export async function removeOrderLine(orderId: string, lineId: string): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/lines/${lineId}`, {
+    method: "DELETE",
+  })
+  return data.order
 }
 
-export async function addOrderLine(orderId: string, line: OrderLine): Promise<void> {
-  await apiFetch(`/api/orders/${orderId}/lines`, {
+export async function addOrderLine(orderId: string, line: OrderLine): Promise<FranchiseOrder> {
+  const data = await apiFetch<{ order: FranchiseOrder }>(`/api/orders/${orderId}/lines`, {
     method: "POST",
     body: JSON.stringify(line),
   })
+  return data.order
 }
 
 export async function fetchRetailerInventory(franchiseId: string) {
   return apiFetch<Record<string, unknown>[]>(`/api/inventory/${franchiseId}`)
 }
 
-export async function updateRetailerInventoryShelf(id: string, shelf: string): Promise<void> {
-  await apiFetch(`/api/inventory/${id}/shelf`, {
+export async function updateRetailerInventoryShelf(id: string, shelf: string) {
+  const data = await apiFetch<{ item: Record<string, unknown> }>(`/api/inventory/${id}/shelf`, {
     method: "PATCH",
     body: JSON.stringify({ shelf }),
   })
+  return data.item
 }
 
-export async function updateRetailerInventoryQty(id: string, qty: number): Promise<void> {
-  await apiFetch(`/api/inventory/${id}/qty`, {
+export async function updateRetailerInventoryQty(id: string, qty: number) {
+  const data = await apiFetch<{ item: Record<string, unknown> }>(`/api/inventory/${id}/qty`, {
     method: "PATCH",
     body: JSON.stringify({ qty }),
   })
+  return data.item
 }

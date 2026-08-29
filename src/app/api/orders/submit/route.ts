@@ -8,6 +8,6 @@ export const POST = withHandler(async (req) => {
   const ctx = await requireUser()
   requireActiveRetailer(ctx)
   const body = orderSubmitSchema.parse(await req.json())
-  const orderId = await ordersService.submitOrder(ctx, body.lines)
-  return jsonOk({ orderId }, 201)
+  const order = await ordersService.submitOrder(ctx, body.lines)
+  return jsonOk({ order }, 201)
 })

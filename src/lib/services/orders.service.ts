@@ -15,6 +15,18 @@ import {
   reserveStockFefo,
 } from "@/lib/services/stock-reservation"
 
+export async function getOrderById(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      franchise: { select: { name: true } },
+      lines: true,
+    },
+  })
+  if (!order) throw AppError.notFound("Order not found")
+  return mapOrderRow(order, order.lines, order.franchise.name)
+}
+
 export async function listOrders(ctx: AuthContext) {
   const where =
     ctx.role === "retailer" && ctx.franchiseId ? { franchiseId: ctx.franchiseId } : undefined
@@ -45,7 +57,7 @@ export async function submitOrder(
     throw AppError.badRequest("Order must have at least one line")
   }
 
-  return prisma.$transaction(async (tx) => {
+  const orderId = await prisma.$transaction(async (tx) => {
     for (const line of lines) {
       if (line.quantity <= 0) {
         throw AppError.badRequest(`Invalid quantity for ${line.medicineName}`)
@@ -110,6 +122,8 @@ export async function submitOrder(
 
     return order.id
   })
+
+  return getOrderById(orderId)
 }
 
 export async function updateOrderMeta(
@@ -135,6 +149,7 @@ export async function updateOrderMeta(
   }
 
   await prisma.order.update({ where: { id: orderId }, data: update })
+  return getOrderById(orderId)
 }
 
 export async function approveOrder(
@@ -198,6 +213,8 @@ export async function approveOrder(
       },
     })
   })
+
+  return getOrderById(orderId)
 }
 
 export async function dispatchOrder(ctx: AuthContext, orderId: string) {
@@ -272,6 +289,8 @@ export async function dispatchOrder(ctx: AuthContext, orderId: string) {
       },
     })
   })
+
+  return getOrderById(orderId)
 }
 
 export async function rejectOrder(ctx: AuthContext, orderId: string, reason?: string) {
@@ -306,6 +325,8 @@ export async function rejectOrder(ctx: AuthContext, orderId: string, reason?: st
       },
     })
   })
+
+  return getOrderById(orderId)
 }
 
 export async function deleteOrder(ctx: AuthContext, orderId: string) {
@@ -373,6 +394,7 @@ export async function updateOrderLine(
     0,
   )
   await prisma.order.update({ where: { id: orderId }, data: { totalAmount: total } })
+  return getOrderById(orderId)
 }
 
 export async function deleteOrderLine(_ctx: AuthContext, orderId: string, lineId: string) {
@@ -387,6 +409,7 @@ export async function deleteOrderLine(_ctx: AuthContext, orderId: string, lineId
     0,
   )
   await prisma.order.update({ where: { id: orderId }, data: { totalAmount: total } })
+  return getOrderById(orderId)
 }
 
 export async function addOrderLine(
@@ -414,4 +437,5 @@ export async function addOrderLine(
     0,
   )
   await prisma.order.update({ where: { id: orderId }, data: { totalAmount: total } })
+  return getOrderById(orderId)
 }

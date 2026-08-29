@@ -3,19 +3,25 @@ import { AppError } from "@/lib/errors"
 import type { AuthContext } from "@/lib/auth/requireUser"
 import { requireFranchiseAccess } from "@/lib/auth/requireUser"
 
-export async function listInventory(ctx: AuthContext, franchiseId: string) {
-  requireFranchiseAccess(ctx, franchiseId)
-
-  const rows = await prisma.retailerInventory.findMany({
-    where: { franchiseId },
-    orderBy: { name: "asc" },
-  })
-
-  return rows.map((r) => ({
+function mapInventoryRow(r: {
+  id: string
+  franchiseId: string
+  name: string
+  brand: string | null
+  batch: string
+  expiry: Date
+  hsn: string
+  gst: { toNumber(): number } | number
+  packSize: string
+  shelf: string
+  qty: number
+  sourceOrderId: string | null
+}) {
+  return {
     id: r.id,
     franchise_id: r.franchiseId,
     name: r.name,
-    brand: r.brand,
+    brand: r.brand ?? "",
     batch: r.batch,
     expiry: r.expiry.toISOString().slice(0, 10),
     hsn: r.hsn,
@@ -24,7 +30,18 @@ export async function listInventory(ctx: AuthContext, franchiseId: string) {
     shelf: r.shelf,
     qty: r.qty,
     source_order_id: r.sourceOrderId,
-  }))
+  }
+}
+
+export async function listInventory(ctx: AuthContext, franchiseId: string) {
+  requireFranchiseAccess(ctx, franchiseId)
+
+  const rows = await prisma.retailerInventory.findMany({
+    where: { franchiseId },
+    orderBy: { name: "asc" },
+  })
+
+  return rows.map(mapInventoryRow)
 }
 
 export async function updateInventoryShelf(ctx: AuthContext, id: string, shelf: string) {
@@ -32,10 +49,12 @@ export async function updateInventoryShelf(ctx: AuthContext, id: string, shelf: 
   if (!item) throw AppError.notFound("Inventory item not found")
   requireFranchiseAccess(ctx, item.franchiseId)
 
-  await prisma.retailerInventory.update({
+  const row = await prisma.retailerInventory.update({
     where: { id },
     data: { shelf },
   })
+
+  return mapInventoryRow(row)
 }
 
 export async function updateInventoryQty(ctx: AuthContext, id: string, qty: number) {
@@ -47,8 +66,10 @@ export async function updateInventoryQty(ctx: AuthContext, id: string, qty: numb
   if (!item) throw AppError.notFound("Inventory item not found")
   requireFranchiseAccess(ctx, item.franchiseId)
 
-  await prisma.retailerInventory.update({
+  const row = await prisma.retailerInventory.update({
     where: { id },
     data: { qty },
   })
+
+  return mapInventoryRow(row)
 }

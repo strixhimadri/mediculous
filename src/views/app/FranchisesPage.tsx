@@ -203,7 +203,7 @@ function FranchiseFormFields({
 }
 
 export function FranchisesPage() {
-  const { franchises, addFranchise, updateFranchise, removeFranchise, importFranchises, refresh } = useAppState()
+  const { franchises, addFranchise, updateFranchise, removeFranchise, importFranchises, upsertFranchise } = useAppState()
   const page = usePagedRows(franchises, 25)
   const meta = getRouteMeta("/app/franchises")
   const [addOpen, setAddOpen] = useState(false)
@@ -212,6 +212,8 @@ export function FranchisesPage() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [importing, setImporting] = useState(false)
   const [provisioning, setProvisioning] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -254,7 +256,7 @@ export function FranchisesPage() {
     }
     setProvisioning(true)
     try {
-      await provisionFranchise({
+      const result = await provisionFranchise({
         name: formData.name,
         phone: formData.phone,
         whatsapp: formData.whatsapp || formData.phone,
@@ -267,9 +269,9 @@ export function FranchisesPage() {
         email: formData.email.trim().toLowerCase(),
         temporaryPassword: formData.temporaryPassword,
       })
+      upsertFranchise(result.franchise as Franchise)
       setForm(emptyForm)
       setAddOpen(false)
-      await refresh({ silent: true })
       toast.success(`Franchise provisioned — share login details with ${formData.email}`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not provision franchise")
@@ -294,27 +296,46 @@ export function FranchisesPage() {
       lastOrder: formData.lastOrder || new Date().toISOString(),
       whatsapp: formData.whatsapp,
     })
+    setSaving(true)
     if (mode === "add") {
-      void addFranchise(draft).then(() => {
-        setForm(emptyForm)
-        setAddOpen(false)
-        toast.success("Franchise added")
-      })
+      void addFranchise(draft)
+        .then(() => {
+          setForm(emptyForm)
+          setAddOpen(false)
+          toast.success("Franchise added")
+        })
+        .catch((error) => {
+          toast.error(error instanceof Error ? error.message : "Could not add franchise")
+        })
+        .finally(() => setSaving(false))
       return
     }
-    if (!editTarget) return
-    void updateFranchise(editTarget.id, draft).then(() => {
-      setEditTarget(null)
-      toast.success("Franchise updated")
-    })
+    if (!editTarget) {
+      setSaving(false)
+      return
+    }
+    void updateFranchise(editTarget.id, draft)
+      .then(() => {
+        setEditTarget(null)
+        toast.success("Franchise updated")
+      })
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Could not update franchise")
+      })
+      .finally(() => setSaving(false))
   }
 
   function confirmDelete() {
     if (!deleteTarget) return
-    void removeFranchise(deleteTarget.id).then(() => {
-      toast.success(`${deleteTarget.name} removed`)
-      setDeleteTarget(null)
-    })
+    const target = deleteTarget
+    setDeleteTarget(null)
+    setDeletingId(target.id)
+    void removeFranchise(target.id)
+      .then(() => toast.success(`${target.name} removed`))
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "Could not remove franchise")
+      })
+      .finally(() => setDeletingId(null))
   }
 
   return (
@@ -488,8 +509,14 @@ export function FranchisesPage() {
             <DialogDescription>Update partner details for {editTarget?.name}.</DialogDescription>
           </DialogHeader>
           <FranchiseFormFields form={editForm} setForm={setEditForm} idPrefix="edit" />
-          <Button className="w-full" onClick={() => saveFranchiseFromForm(editForm, "edit")}>
-            Save changes
+          <Button className="w-full" disabled={saving} onClick={() => saveFranchiseFromForm(editForm, "edit")}>
+            {saving ? (
+              <>
+                <Loader2 className="size-4 animate-spin" /> Saving…
+              </>
+            ) : (
+              "Save changes"
+            )}
           </Button>
         </DialogContent>
       </Dialog>
@@ -504,8 +531,14 @@ export function FranchisesPage() {
             <Button variant="glass" onClick={() => setDeleteTarget(null)}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={confirmDelete}>
-              Remove franchise
+            <Button variant="danger" disabled={!!deletingId} onClick={confirmDelete}>
+              {deletingId ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" /> Removing…
+                </>
+              ) : (
+                "Remove franchise"
+              )}
             </Button>
           </div>
         </DialogContent>

@@ -50,13 +50,26 @@ export function InventoryListPage() {
 
   async function saveEdit() {
     if (!edit) return
+    const snapshot = rows
+    setRows((prev) =>
+      prev.map((row) =>
+        row.id === edit.id ? { ...row, shelf: edit.shelf, qty: edit.qty } : row,
+      ),
+    )
+    setEdit(null)
     try {
-      await api.updateRetailerInventoryShelf(edit.id, edit.shelf)
-      await api.updateRetailerInventoryQty(edit.id, edit.qty)
+      const shelfItem = await api.updateRetailerInventoryShelf(edit.id, edit.shelf)
+      const qtyItem = await api.updateRetailerInventoryQty(edit.id, edit.qty)
+      setRows((prev) =>
+        prev.map((row) =>
+          row.id === edit.id
+            ? { ...row, ...(qtyItem as DbRetailerInventory), ...(shelfItem as DbRetailerInventory) }
+            : row,
+        ),
+      )
       toast.success("Updated")
-      setEdit(null)
-      await load()
     } catch (err) {
+      setRows(snapshot)
       toast.error(err instanceof Error ? err.message : "Update failed")
     }
   }
