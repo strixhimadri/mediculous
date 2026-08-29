@@ -46,9 +46,13 @@ npx prisma migrate dev --name baseline
 2. Promote admin in SQL Editor:
 
 ```sql
+ALTER TABLE public.profiles DISABLE TRIGGER profiles_prevent_escalation;
+
 UPDATE public.profiles
 SET role = 'admin', franchise_id = NULL, active = true
 WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@yourdomain.com');
+
+ALTER TABLE public.profiles ENABLE TRIGGER profiles_prevent_escalation;
 ```
 
 3. Link retailer to franchise (see `supabase/README.md`)

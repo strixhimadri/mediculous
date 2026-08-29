@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { NavLink, useLocation, useNavigate } from "@/lib/navigation"
+import { Link, NavLink, useLocation, useNavigate } from "@/lib/navigation"
 import {
   BarChart3,
+  Code2,
   ChevronDown,
   LayoutDashboard,
   LogOut,
@@ -40,8 +41,13 @@ const mobileLinks = [
   { to: "/app/medicines/expired", label: "Expired product" },
   { to: "/app/orders/franchise", label: "Franchise order" },
   { to: "/app/franchises", label: "List franchise" },
-  { to: "/app/orders/hospital", label: "Hospital order" },
   { to: "/app/reports", label: "Sales report" },
+]
+
+const mobileDevLinks = [
+  { to: "/app/dev/users", label: "Dev — Users" },
+  { to: "/app/dev/audit", label: "Dev — Audit log" },
+  { to: "/app/dev/health", label: "Dev — Health" },
 ]
 
 export function Navbar() {
@@ -52,6 +58,7 @@ export function Navbar() {
   const medicinesOn = pathname.startsWith("/app/medicines")
   const ordersOn = pathname.startsWith("/app/orders") || pathname.startsWith("/app/franchises")
   const reportsOn = pathname.startsWith("/app/reports")
+  const devOn = pathname.startsWith("/app/dev")
 
   return (
     <header className="sticky top-3 z-50 px-3 sm:px-4">
@@ -76,9 +83,15 @@ export function Navbar() {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => navigate("/app/medicines")}>List stock</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/medicines/expiry")}>Expiry alert</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/medicines/expired")}>Expired product</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/medicines">List stock</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/medicines/expiry">Expiry alert</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/medicines/expired">Expired product</Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -89,9 +102,13 @@ export function Navbar() {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => navigate("/app/orders/franchise")}>Franchise order</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/franchises")}>List franchise</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/orders/hospital")} disabled>
+              <DropdownMenuItem asChild>
+                <Link to="/app/orders/franchise">Franchise order</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/franchises">List franchise</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled>
                 Hospital order <span className="ml-auto text-[10px] uppercase text-steel">Soon</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -104,10 +121,35 @@ export function Navbar() {
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onSelect={() => navigate("/app/reports")}>Sales report</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/medicines/expiry")}>Expiry report</DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/reports">Sales report</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/medicines/expiry">Expiry report</Link>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {user?.isSuperAdmin ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className={navItemClass(devOn)}>
+                <span className="inline-flex items-center gap-1">
+                  <Code2 className="size-3.5" /> Dev <ChevronDown className="size-3" />
+                </span>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem asChild>
+                  <Link to="/app/dev/users">Users</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/app/dev/audit">Audit log</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/app/dev/health">Health</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
@@ -129,9 +171,13 @@ export function Navbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => navigate("/app")}>Console</DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => navigate("/app/franchises")}>
-                <Store className="mr-2 size-4" /> Franchises
+              <DropdownMenuItem asChild>
+                <Link to="/app">Console</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/app/franchises">
+                  <Store className="mr-2 size-4" /> Franchises
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -155,28 +201,30 @@ export function Navbar() {
           </DialogHeader>
           <nav className="grid gap-1">
             {mobileLinks.map((item) => (
-              <Button
-                key={item.to}
-                variant="glass"
-                className="justify-start"
-                onClick={() => {
-                  navigate(item.to)
-                  setOpen(false)
-                }}
-              >
-                {item.label}
+              <Button key={item.to} variant="glass" className="justify-start" asChild>
+                <Link to={item.to} onClick={() => setOpen(false)}>
+                  {item.label}
+                </Link>
               </Button>
             ))}
+            {user?.isSuperAdmin ? (
+              <>
+                <div className="my-2 border-t border-line" />
+                <p className="px-2 text-[10px] font-semibold uppercase tracking-wide text-steel">Developer</p>
+                {mobileDevLinks.map((item) => (
+                  <Button key={item.to} variant="glass" className="justify-start" asChild>
+                    <Link to={item.to} onClick={() => setOpen(false)}>
+                      {item.label}
+                    </Link>
+                  </Button>
+                ))}
+              </>
+            ) : null}
             <div className="my-2 border-t border-line" />
-            <Button
-              variant="glass"
-              className="justify-start"
-              onClick={() => {
-                navigate("/app/franchises")
-                setOpen(false)
-              }}
-            >
-              <Store className="mr-2 size-4" /> Franchises
+            <Button variant="glass" className="justify-start" asChild>
+              <Link to="/app/franchises" onClick={() => setOpen(false)}>
+                <Store className="mr-2 size-4" /> Franchises
+              </Link>
             </Button>
             <Button
               variant="glass"

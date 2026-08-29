@@ -1,13 +1,4 @@
-import * as XLSX from "xlsx"
-import * as pdfjsLib from "pdfjs-dist"
 import type { StockItem } from "@/data/stock"
-
-if (typeof window !== "undefined") {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString()
-}
 
 export type StockImportRow = Omit<StockItem, "id">
 
@@ -128,6 +119,7 @@ function rowsFromObjects(objects: Record<string, unknown>[]) {
 }
 
 export async function parseStockExcel(file: File) {
+  const XLSX = await import("xlsx")
   const buffer = await file.arrayBuffer()
   const workbook = XLSX.read(buffer, { type: "array" })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
@@ -138,6 +130,13 @@ export async function parseStockExcel(file: File) {
 }
 
 async function extractPdfLines(file: File) {
+  const pdfjsLib = await import("pdfjs-dist")
+  if (typeof window !== "undefined") {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url,
+    ).toString()
+  }
   const buffer = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
   const lines: string[] = []
@@ -208,7 +207,8 @@ export async function importStockFile(file: File) {
   throw new Error("Unsupported file type. Upload .xlsx, .xls, .csv, or .pdf")
 }
 
-export function exportStockSpreadsheet(stock: StockItem[]) {
+export async function exportStockSpreadsheet(stock: StockItem[]) {
+  const XLSX = await import("xlsx")
   const rows = stock.map((item) => ({
     "Medicine Name": item.name,
     Brand: item.brand ?? "",

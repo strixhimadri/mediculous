@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils"
 type LinkProps = Omit<ComponentProps<typeof NextLink>, "href"> & {
   to?: string
   href?: string
+  prefetch?: boolean
 }
 
-export function Link({ to, href, ...props }: LinkProps) {
-  return <NextLink href={to ?? href ?? "/"} {...props} />
+export function Link({ to, href, prefetch = true, ...props }: LinkProps) {
+  return <NextLink href={to ?? href ?? "/"} prefetch={prefetch} {...props} />
 }
 
 type NavLinkProps = {
@@ -31,7 +32,7 @@ export function NavLink({ to, end, className, children, onClick }: NavLinkProps)
     typeof className === "function" ? className({ isActive }) : cn(className, isActive && "active")
 
   return (
-    <NextLink href={to} className={resolvedClass} onClick={onClick}>
+    <NextLink href={to} prefetch className={resolvedClass} onClick={onClick}>
       {children}
     </NextLink>
   )

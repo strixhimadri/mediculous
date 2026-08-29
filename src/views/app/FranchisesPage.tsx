@@ -28,6 +28,7 @@ import {
   importFranchiseFile,
 } from "@/lib/franchiseImport"
 import { getRouteMeta } from "@/lib/routeMeta"
+import { provisionFranchise } from "@/lib/api/http"
 
 type FranchiseForm = {
   name: string
@@ -39,6 +40,8 @@ type FranchiseForm = {
   changePct: string
   lastOrder: string
   whatsapp: string
+  email: string
+  temporaryPassword: string
 }
 
 const emptyForm: FranchiseForm = {
@@ -51,6 +54,8 @@ const emptyForm: FranchiseForm = {
   changePct: "",
   lastOrder: "",
   whatsapp: "",
+  email: "",
+  temporaryPassword: "",
 }
 
 function franchiseToForm(row: Franchise): FranchiseForm {
@@ -64,6 +69,8 @@ function franchiseToForm(row: Franchise): FranchiseForm {
     changePct: String(row.changePct || ""),
     lastOrder: row.lastOrder ? row.lastOrder.slice(0, 10) : "",
     whatsapp: row.whatsapp,
+    email: "",
+    temporaryPassword: "",
   }
 }
 
@@ -71,10 +78,12 @@ function FranchiseFormFields({
   form,
   setForm,
   idPrefix,
+  showAccountFields = false,
 }: {
   form: FranchiseForm
   setForm: Dispatch<SetStateAction<FranchiseForm>>
   idPrefix: string
+  showAccountFields?: boolean
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -157,12 +166,44 @@ function FranchiseFormFields({
           onChange={(e) => setForm((f) => ({ ...f, lastOrder: e.target.value }))}
         />
       </div>
+      {showAccountFields ? (
+        <>
+          <div className="space-y-1 sm:col-span-2 border-t border-line pt-4">
+            <p className="text-sm font-medium text-ink">Retailer login</p>
+            <p className="text-xs text-ink-soft">
+              Creates a Gmail account with a temporary password. The retailer must change it on first login.
+            </p>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor={`${idPrefix}-email`}>Retailer email</Label>
+            <Input
+              id={`${idPrefix}-email`}
+              type="email"
+              autoComplete="off"
+              placeholder="partner@gmail.com"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor={`${idPrefix}-temp-pw`}>Temporary password</Label>
+            <Input
+              id={`${idPrefix}-temp-pw`}
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              value={form.temporaryPassword}
+              onChange={(e) => setForm((f) => ({ ...f, temporaryPassword: e.target.value }))}
+            />
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }
 
 export function FranchisesPage() {
-  const { franchises, addFranchise, updateFranchise, removeFranchise, importFranchises } = useAppState()
+  const { franchises, addFranchise, updateFranchise, removeFranchise, importFranchises, refresh } = useAppState()
   const page = usePagedRows(franchises, 25)
   const meta = getRouteMeta("/app/franchises")
   const [addOpen, setAddOpen] = useState(false)
@@ -170,6 +211,7 @@ export function FranchisesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Franchise | null>(null)
   const [uploadOpen, setUploadOpen] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [provisioning, setProvisioning] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [editForm, setEditForm] = useState(emptyForm)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -194,6 +236,45 @@ export function FranchisesPage() {
     } finally {
       setImporting(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  async function provisionFranchiseFromForm(formData: FranchiseForm) {
+    if (!formData.name.trim()) {
+      toast.error("Franchise name is required")
+      return
+    }
+    if (!formData.email.trim()) {
+      toast.error("Retailer email is required")
+      return
+    }
+    if (formData.temporaryPassword.length < 8) {
+      toast.error("Temporary password must be at least 8 characters")
+      return
+    }
+    setProvisioning(true)
+    try {
+      await provisionFranchise({
+        name: formData.name,
+        phone: formData.phone,
+        whatsapp: formData.whatsapp || formData.phone,
+        yearlyOrder: Number(formData.yearlyOrder) || 0,
+        aov: Number(formData.aov) || 0,
+        monthPotential: Number(formData.monthPotential) || 0,
+        thisMonth: Number(formData.thisMonth) || 0,
+        changePct: Number(formData.changePct) || 0,
+        lastOrder: formData.lastOrder || undefined,
+        email: formData.email.trim().toLowerCase(),
+        temporaryPassword: formData.temporaryPassword,
+      })
+      setForm(emptyForm)
+      setAddOpen(false)
+      await refresh({ silent: true })
+      toast.success(`Franchise provisioned — share login details with ${formData.email}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not provision franchise")
+    } finally {
+      setProvisioning(false)
     }
   }
 
@@ -377,12 +458,25 @@ export function FranchisesPage() {
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add franchise</DialogTitle>
-            <DialogDescription>Enter partner details for the demonstration franchise list.</DialogDescription>
+            <DialogTitle>Provision franchise</DialogTitle>
+            <DialogDescription>
+              Create a franchise record and retailer login. The partner must change their password on first
+              sign-in.
+            </DialogDescription>
           </DialogHeader>
-          <FranchiseFormFields form={form} setForm={setForm} idPrefix="add" />
-          <Button className="w-full" onClick={() => saveFranchiseFromForm(form, "add")}>
-            Save franchise
+          <FranchiseFormFields form={form} setForm={setForm} idPrefix="add" showAccountFields />
+          <Button
+            className="w-full"
+            disabled={provisioning}
+            onClick={() => void provisionFranchiseFromForm(form)}
+          >
+            {provisioning ? (
+              <>
+                <Loader2 className="size-4 animate-spin" /> Provisioning…
+              </>
+            ) : (
+              "Provision franchise & account"
+            )}
           </Button>
         </DialogContent>
       </Dialog>

@@ -54,6 +54,61 @@ export const orderLineSchema = z.object({
   gst: z.number().optional(),
 })
 
+export const franchiseProvisionSchema = z.object({
+  name: z.string().min(1),
+  phone: z.string().optional(),
+  whatsapp: z.string().optional(),
+  yearlyOrder: z.number().optional(),
+  aov: z.number().optional(),
+  monthPotential: z.number().optional(),
+  thisMonth: z.number().optional(),
+  changePct: z.number().optional(),
+  lastOrder: z.string().optional(),
+  email: z.string().email(),
+  temporaryPassword: z.string().min(8),
+})
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+})
+
+export const devUserUpdateSchema = z.object({
+  role: z.enum(["admin", "retailer", "super_admin"]),
+  franchiseId: z.string().uuid().nullable(),
+  active: z.boolean(),
+})
+
+export const devResetPasswordSchema = z.object({
+  newPassword: z.string().min(8),
+})
+
+export const devUserCreateSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string().min(8),
+    displayName: z.string().optional(),
+    role: z.enum(["admin", "retailer", "super_admin"]),
+    franchiseId: z.string().uuid().nullable().optional(),
+    mustChangePassword: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "retailer" && !data.franchiseId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Retailer must be linked to a franchise",
+        path: ["franchiseId"],
+      })
+    }
+    if ((data.role === "admin" || data.role === "super_admin") && data.franchiseId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Admin roles cannot have a franchise",
+        path: ["franchiseId"],
+      })
+    }
+  })
+
 export const franchiseSchema = z.object({
   name: z.string().min(1),
   phone: z.string().optional(),

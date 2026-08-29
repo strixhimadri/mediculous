@@ -1,4 +1,4 @@
-export type UserRole = "admin" | "retailer"
+export type UserRole = "admin" | "retailer" | "super_admin"
 export type OrderStatus = "pending" | "approved" | "dispatched" | "rejected"
 
 export type Profile = {

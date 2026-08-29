@@ -55,6 +55,21 @@ const meta: Record<string, RouteMeta> = {
     description: "Demonstration figures — not live accounts.",
     crumbs: [{ label: "Console", to: "/app" }, { label: "Reports" }],
   },
+  "/app/dev/users": {
+    title: "Users",
+    description: "Create accounts, manage roles, and reset passwords.",
+    crumbs: [{ label: "Console", to: "/app" }, { label: "Dev" }, { label: "Users" }],
+  },
+  "/app/dev/audit": {
+    title: "Audit log",
+    description: "Recent privileged actions in the system.",
+    crumbs: [{ label: "Console", to: "/app" }, { label: "Dev" }, { label: "Audit" }],
+  },
+  "/app/dev/health": {
+    title: "Health",
+    description: "API and environment checks.",
+    crumbs: [{ label: "Console", to: "/app" }, { label: "Dev" }, { label: "Health" }],
+  },
 }
 
 export function getRouteMeta(pathname: string): RouteMeta {

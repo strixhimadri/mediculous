@@ -5,9 +5,9 @@ import { ShopShell } from "@/components/layout/ShopShell"
 import { AppStateProvider } from "@/context/AppState"
 import { CartProvider } from "@/context/CartContext"
 
-export default function ShopLayout({ children }: { children: React.ReactNode }) {
+export default function ShopStoreLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute roles={["retailer"]}>
+    <ProtectedRoute roles={["retailer"]} requirePasswordChanged>
       <AppStateProvider>
         <CartProvider>
           <ShopShell>{children}</ShopShell>

@@ -5,6 +5,42 @@ import type { StockItem } from "@/data/stock"
 import type { StockImportRow } from "@/lib/stockImport"
 import type { FranchiseImportRow } from "@/lib/franchiseImport"
 
+let adminBootstrapPromise: Promise<{
+  stock: StockItem[]
+  franchises: Franchise[]
+  orders: FranchiseOrder[]
+}> | null = null
+
+let shopBootstrapPromise: Promise<{
+  catalog: StockItem[]
+  orders: FranchiseOrder[]
+}> | null = null
+
+export async function fetchAdminBootstrap() {
+  if (!adminBootstrapPromise) {
+    adminBootstrapPromise = apiFetch<{
+      stock: StockItem[]
+      franchises: Franchise[]
+      orders: FranchiseOrder[]
+    }>("/api/admin/bootstrap").finally(() => {
+      adminBootstrapPromise = null
+    })
+  }
+  return adminBootstrapPromise
+}
+
+export async function fetchShopBootstrap() {
+  if (!shopBootstrapPromise) {
+    shopBootstrapPromise = apiFetch<{
+      catalog: StockItem[]
+      orders: FranchiseOrder[]
+    }>("/api/shop/bootstrap").finally(() => {
+      shopBootstrapPromise = null
+    })
+  }
+  return shopBootstrapPromise
+}
+
 export async function fetchAdminStock(): Promise<StockItem[]> {
   return apiFetch<StockItem[]>("/api/stock")
 }

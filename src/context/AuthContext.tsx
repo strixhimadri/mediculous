@@ -7,12 +7,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 import { fetchAuthProfile } from "@/lib/api/http"
 import { getSupabase, isSupabaseConfigured } from "@/lib/auth/client"
+import { invalidateProfileCache } from "@/lib/auth/profile-cache"
 import type { UserRole } from "@/types/database"
 
 export type AuthUser = {
@@ -21,6 +23,8 @@ export type AuthUser = {
   role: UserRole
   franchiseId: string | null
   displayName: string | null
+  mustChangePassword: boolean
+  isSuperAdmin: boolean
 }
 
 type AuthState = {
@@ -29,7 +33,7 @@ type AuthState = {
   loading: boolean
   configured: boolean
   apiReady: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => Promise<{ error: string | null; user?: AuthUser }>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
 }
@@ -51,6 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(configured)
+  const userRef = useRef<AuthUser | null>(null)
+  userRef.current = user
 
   const signOut = useCallback(async () => {
     if (!configured) {
@@ -60,8 +66,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const supabase = getSupabase()
     await supabase.auth.signOut()
+    invalidateProfileCache()
     setUser(null)
     setSession(null)
+    setLoading(false)
   }, [configured])
 
   const refreshProfile = useCallback(async () => {
@@ -82,27 +90,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const supabase = getSupabase()
+    let mounted = true
+
+    async function initSession() {
+      const {
+        data: { session: initialSession },
+      } = await supabase.auth.getSession()
+      if (!mounted) return
+
+      setSession(initialSession)
+      if (initialSession) {
+        try {
+          const nextUser = await hydrateUser(initialSession)
+          if (mounted) setUser(nextUser)
+        } catch {
+          if (mounted) await signOut()
+        }
+      }
+      if (mounted) setLoading(false)
+    }
+
+    void initSession()
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession: Session | null) => {
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, nextSession: Session | null) => {
+      if (!mounted) return
+      if (event === "INITIAL_SESSION") return
+
       setSession(nextSession)
 
-      if (nextSession) {
-        try {
-          const nextUser = await hydrateUser(nextSession)
-          setUser(nextUser)
-          if (!nextUser) setSession(null)
-        } catch {
-          await signOut()
-        }
-      } else {
+      if (!nextSession) {
         setUser(null)
+        setLoading(false)
+        return
+      }
+
+      if (event === "TOKEN_REFRESHED" && userRef.current) {
+        setLoading(false)
+        return
+      }
+
+      if (event === "SIGNED_IN" && userRef.current) {
+        setLoading(false)
+        return
+      }
+
+      try {
+        const nextUser = await hydrateUser(nextSession)
+        setUser(nextUser)
+        if (!nextUser) setSession(null)
+      } catch {
+        await signOut()
       }
 
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [configured, signOut])
 
   const signIn = useCallback(
@@ -124,14 +172,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const nextUser = await hydrateUser(data.session)
         setSession(data.session)
         setUser(nextUser)
+        setLoading(false)
         if (!nextUser) {
           await supabase.auth.signOut()
           return {
             error: "Account is inactive or not linked to a franchise. Contact your administrator.",
           }
         }
+        return { error: null, user: nextUser }
       }
 
+      setLoading(false)
       return { error: null }
     },
     [configured],

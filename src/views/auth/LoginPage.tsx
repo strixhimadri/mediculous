@@ -1,7 +1,8 @@
 "use client"
 
 import { FormEvent, useState } from "react"
-import { Link, Navigate, useSearchParams } from "@/lib/navigation"
+import { useRouter } from "next/navigation"
+import { Link, Navigate, useNavigate, useSearchParams } from "@/lib/navigation"
 import { Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,9 +10,12 @@ import { Label } from "@/components/ui/label"
 import { AuroraField } from "@/components/layout/AuroraField"
 import { SkipLink, BrandMark } from "@/components/layout/SkipLink"
 import { useAuth } from "@/context/AuthContext"
+import { getPostLoginPath } from "@/lib/auth/roles"
 import { toast } from "sonner"
 
 export function LoginPage() {
+  const router = useRouter()
+  const navigate = useNavigate()
   const searchParams = useSearchParams()
   const { signIn, user, loading, configured } = useAuth()
   const [email, setEmail] = useState("")
@@ -21,20 +25,26 @@ export function LoginPage() {
   const from = searchParams.get("redirect")
 
   if (!loading && user) {
-    const dest = from ?? (user.role === "admin" ? "/app" : "/shop")
-    return <Navigate to={dest} replace />
+    return <Navigate to={getPostLoginPath(user, from)} replace />
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
-    const { error } = await signIn(email, password)
+    const result = await signIn(email, password)
     setSubmitting(false)
-    if (error) {
-      toast.error(error)
+    if (result.error) {
+      toast.error(result.error)
       return
     }
+
+    const signedInUser = result.user ?? user
+    if (!signedInUser) return
+
     toast.success("Signed in")
+    const dest = getPostLoginPath(signedInUser, from)
+    router.refresh()
+    navigate(dest, { replace: true })
   }
 
   return (

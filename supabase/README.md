@@ -28,12 +28,16 @@ npx prisma migrate resolve --applied 20250828100000_init
 ## 3. Create admin user
 
 1. **Authentication → Users → Add user**
-2. Promote in SQL Editor:
+2. Promote in SQL Editor (disable trigger first — DB blocks role changes otherwise):
 
 ```sql
+ALTER TABLE public.profiles DISABLE TRIGGER profiles_prevent_escalation;
+
 UPDATE public.profiles
 SET role = 'admin', franchise_id = NULL, active = true
 WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@yourdomain.com');
+
+ALTER TABLE public.profiles ENABLE TRIGGER profiles_prevent_escalation;
 ```
 
 ## 4. Create retailer

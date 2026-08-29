@@ -15,6 +15,7 @@ import type { Franchise } from "@/data/franchises"
 import type { FranchiseOrder, OrderLine } from "@/data/orders"
 import type { StockItem } from "@/data/stock"
 import { useAuth } from "@/context/AuthContext"
+import { isConsoleRole } from "@/lib/auth/roles"
 import * as api from "@/lib/db/api"
 import type { FranchiseImportRow } from "@/lib/franchiseImport"
 import type { StockImportRow } from "@/lib/stockImport"
@@ -61,6 +62,10 @@ const IMPORT_BATCH = 8
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const { user, configured } = useAuth()
+  const userId = user?.id
+  const userRole = user?.role
+  const franchiseId = user?.franchiseId ?? null
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stock, setStock] = useState<StockItem[]>([])
@@ -68,6 +73,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [franchises, setFranchises] = useState<Franchise[]>([])
   const [orders, setOrders] = useState<FranchiseOrder[]>([])
   const refreshGen = useRef(0)
+  const loadedSessionKey = useRef<string | null>(null)
+
+  const sessionKey =
+    userId && userRole ? `${userId}:${userRole}:${franchiseId ?? ""}` : null
 
   const clearError = useCallback(() => setError(null), [])
 
@@ -75,12 +84,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     async (opts?: RefreshOptions) => {
       const gen = ++refreshGen.current
 
-      if (!configured || !user) {
+      if (!configured || !userId || !userRole) {
         setStock([])
         setCatalog([])
         setFranchises([])
         setOrders([])
         setLoading(false)
+        loadedSessionKey.current = null
         return
       }
 
@@ -88,25 +98,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (!opts?.silent) setError(null)
 
       try {
-        if (user.role === "admin") {
-          const [stockRows, franchiseRows, orderRows] = await Promise.all([
-            api.fetchAdminStock(),
-            api.fetchFranchises(),
-            api.fetchOrders(),
-          ])
+        if (isConsoleRole(userRole)) {
+          const data = await api.fetchAdminBootstrap()
           if (gen !== refreshGen.current) return
-          setStock(stockRows)
-          setFranchises(franchiseRows)
-          setOrders(orderRows)
+          setStock(data.stock)
+          setFranchises(data.franchises)
+          setOrders(data.orders)
           setCatalog([])
-        } else if (user.franchiseId) {
-          const [catalogRows, orderRows] = await Promise.all([
-            api.fetchCatalog(),
-            api.fetchRetailerOrders(user.franchiseId),
-          ])
+        } else if (franchiseId) {
+          const data = await api.fetchShopBootstrap()
           if (gen !== refreshGen.current) return
-          setCatalog(catalogRows)
-          setOrders(orderRows)
+          setCatalog(data.catalog)
+          setOrders(data.orders)
           setStock([])
           setFranchises([])
         } else {
@@ -115,6 +118,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           setCatalog([])
           setOrders([])
         }
+        loadedSessionKey.current = sessionKey
       } catch (err) {
         if (gen !== refreshGen.current) return
         setError(err instanceof Error ? err.message : "Failed to load data")
@@ -122,12 +126,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         if (gen === refreshGen.current && !opts?.silent) setLoading(false)
       }
     },
-    [configured, user],
+    [configured, userId, userRole, franchiseId, sessionKey],
   )
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    if (!userId || !configured || !sessionKey) {
+      loadedSessionKey.current = null
+      setLoading(false)
+      return
+    }
+    if (loadedSessionKey.current === sessionKey) return
+    void refresh()
+  }, [userId, configured, sessionKey, refresh])
 
   const value = useMemo<AppState>(
     () => ({
@@ -241,7 +251,7 @@ export function useAppState() {
 export function useActiveStock(): StockItem[] {
   const { stock, catalog } = useAppState()
   const { user } = useAuth()
-  return user?.role === "admin" ? stock : catalog
+  return isConsoleRole(user?.role ?? "") ? stock : catalog
 }
 
 export function isLiveMode() {

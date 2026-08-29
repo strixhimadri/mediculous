@@ -1,5 +1,6 @@
 import { withHandler } from "@/lib/api/handler"
 import { requireUser } from "@/lib/auth/requireUser"
+import { isSuperAdminRole } from "@/lib/auth/roles"
 import { jsonOk } from "@/lib/errors"
 
 export const GET = withHandler(async () => {
@@ -11,6 +12,8 @@ export const GET = withHandler(async () => {
       role: ctx.role,
       franchiseId: ctx.franchiseId,
       displayName: ctx.displayName,
+      mustChangePassword: ctx.mustChangePassword,
+      isSuperAdmin: isSuperAdminRole(ctx.role),
     },
   })
 })

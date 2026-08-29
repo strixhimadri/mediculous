@@ -11,6 +11,7 @@ datasource db {
 enum UserRole {
   admin
   retailer
+  super_admin
 
   @@map("user_role")
 }
@@ -47,13 +48,14 @@ model Franchise {
 }
 
 model Profile {
-  id          String   @id @db.Uuid
-  role        UserRole @default(retailer)
-  franchiseId String?  @map("franchise_id") @db.Uuid
-  displayName String?  @map("display_name")
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String   @id @db.Uuid
+  role               UserRole @default(retailer)
+  franchiseId        String?  @map("franchise_id") @db.Uuid
+  displayName        String?  @map("display_name")
+  active             Boolean  @default(true)
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   franchise Franchise? @relation(fields: [franchiseId], references: [id], onDelete: SetNull)
 

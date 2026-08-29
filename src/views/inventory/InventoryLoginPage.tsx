@@ -1,6 +1,7 @@
 "use client"
 
 import { FormEvent, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Link, Navigate, useNavigate } from "@/lib/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,9 +9,11 @@ import { Label } from "@/components/ui/label"
 import { AuroraField } from "@/components/layout/AuroraField"
 import { BrandMark, SkipLink } from "@/components/layout/SkipLink"
 import { useAuth } from "@/context/AuthContext"
+import { getPostLoginPath } from "@/lib/auth/roles"
 import { toast } from "sonner"
 
 export function InventoryLoginPage() {
+  const router = useRouter()
   const navigate = useNavigate()
   const { signIn, user, loading, configured } = useAuth()
   const [email, setEmail] = useState("")
@@ -30,20 +33,23 @@ export function InventoryLoginPage() {
         </div>
       )
     }
-    return <Navigate to="/" replace />
+    return <Navigate to={getPostLoginPath(user, "/inventory")} replace />
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setSubmitting(true)
-    const { error } = await signIn(email, password)
+    const result = await signIn(email, password)
     setSubmitting(false)
-    if (error) {
-      toast.error(error)
+    if (result.error) {
+      toast.error(result.error)
       return
     }
     toast.success("Signed in")
-    navigate("/")
+    const signedInUser = result.user
+    if (!signedInUser) return
+    router.refresh()
+    navigate(getPostLoginPath(signedInUser, "/inventory"), { replace: true })
   }
 
   return (

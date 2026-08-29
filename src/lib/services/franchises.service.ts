@@ -1,3 +1,4 @@
+import { createAdminClient } from "@/lib/auth/admin"
 import { prisma } from "@/lib/db/prisma"
 import { AppError } from "@/lib/errors"
 import { mapFranchiseRow } from "@/lib/mappers"
@@ -53,5 +54,20 @@ export async function updateFranchise(_ctx: AuthContext, id: string, body: Recor
 export async function deleteFranchise(_ctx: AuthContext, id: string) {
   const existing = await prisma.franchise.findUnique({ where: { id } })
   if (!existing) throw AppError.notFound("Franchise not found")
-  await prisma.franchise.delete({ where: { id } })
+
+  const linkedProfiles = await prisma.profile.findMany({
+    where: { franchiseId: id },
+    select: { id: true },
+  })
+
+  await prisma.$executeRaw`SELECT public.delete_franchise_bundle(${id}::uuid)`
+
+  if (linkedProfiles.length) {
+    const admin = createAdminClient()
+    await Promise.all(
+      linkedProfiles.map((profile) =>
+        admin.auth.admin.deleteUser(profile.id).catch(() => undefined),
+      ),
+    )
+  }
 }

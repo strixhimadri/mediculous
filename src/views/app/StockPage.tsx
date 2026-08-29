@@ -95,8 +95,8 @@ export function StockPage() {
             </Button>
             <Button
               variant="glass"
-              onClick={() => {
-                exportStockSpreadsheet(stock)
+              onClick={async () => {
+                await exportStockSpreadsheet(stock)
                 toast.success(stock.length ? "Stock file downloaded" : "Template downloaded")
               }}
             >
@@ -209,8 +209,8 @@ export function StockPage() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => {
-                exportStockSpreadsheet([])
+              onClick={async () => {
+                await exportStockSpreadsheet([])
                 toast.success("Template downloaded")
               }}
             >

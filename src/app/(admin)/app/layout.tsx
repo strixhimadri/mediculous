@@ -6,7 +6,7 @@ import { AppStateProvider } from "@/context/AppState"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ProtectedRoute roles={["admin"]}>
+    <ProtectedRoute roles={["admin", "super_admin"]}>
       <AppStateProvider>
         <AppShell>{children}</AppShell>
       </AppStateProvider>

@@ -17,9 +17,34 @@ function isProtectedPath(path: string) {
   return path.startsWith("/app") || path.startsWith("/shop") || path.startsWith("/inventory")
 }
 
+function hasSupabaseAuthCookie(request: NextRequest) {
+  return request.cookies.getAll().some((cookie) => cookie.name.includes("-auth-token"))
+}
+
 export async function updateSession(request: NextRequest) {
   const env = getSupabaseEnv()
   if (!env) {
+    return NextResponse.next({ request })
+  }
+
+  const path = request.nextUrl.pathname
+  const authed = hasSupabaseAuthCookie(request)
+  const isRscNav =
+    request.headers.has("RSC") ||
+    request.headers.has("Next-Router-Prefetch") ||
+    request.headers.has("Next-Router-State-Tree")
+
+  if (!authed) {
+    if (isProtectedPath(path)) {
+      const url = request.nextUrl.clone()
+      url.pathname = path.startsWith("/inventory") ? "/inventory/login" : "/login"
+      url.searchParams.set("redirect", path)
+      return NextResponse.redirect(url)
+    }
+    return NextResponse.next({ request })
+  }
+
+  if (isRscNav && isProtectedPath(path)) {
     return NextResponse.next({ request })
   }
 
@@ -42,10 +67,10 @@ export async function updateSession(request: NextRequest) {
     })
 
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
+      data: { session },
+    } = await supabase.auth.getSession()
 
-    const path = request.nextUrl.pathname
+    const user = session?.user
 
     if (!user && isProtectedPath(path)) {
       const url = request.nextUrl.clone()
@@ -54,9 +79,9 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    if (user && (path === "/login" || path === "/inventory/login")) {
+    if (user && path === "/inventory/login") {
       const url = request.nextUrl.clone()
-      url.pathname = "/app"
+      url.pathname = "/inventory"
       return NextResponse.redirect(url)
     }
 
