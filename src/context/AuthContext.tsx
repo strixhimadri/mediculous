@@ -178,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const body = (await res.json().catch(() => ({}))) as {
         user?: AuthUser
+        session?: { access_token: string; refresh_token: string }
         error?: string
       }
 
@@ -192,16 +193,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const nextUser = body.user ?? null
-      if (!nextUser) {
+      if (!nextUser || !body.session) {
         return { error: "Sign in failed" }
       }
 
       const supabase = getSupabase()
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      const { data, error: sessionError } = await supabase.auth.setSession({
+        access_token: body.session.access_token,
+        refresh_token: body.session.refresh_token,
+      })
 
-      setSession(session)
+      if (sessionError || !data.session) {
+        return { error: sessionError?.message ?? "Failed to establish session" }
+      }
+
+      setSession(data.session)
       setUser(nextUser)
       setLoading(false)
       return { error: null, user: nextUser }

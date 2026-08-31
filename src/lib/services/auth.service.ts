@@ -30,9 +30,9 @@ function toAuthProfile(ctx: AuthContext): AuthProfile {
   }
 }
 
-export async function signIn(email: string, password: string): Promise<AuthProfile> {
+export async function signIn(email: string, password: string) {
   const supabase = await createServerClient()
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: email.trim().toLowerCase(),
     password,
   })
@@ -41,9 +41,19 @@ export async function signIn(email: string, password: string): Promise<AuthProfi
     throw AppError.unauthorized(error.message)
   }
 
+  if (!data.session) {
+    throw AppError.unauthorized("Sign in failed")
+  }
+
   invalidateProfileCache()
   const ctx = await requireUser()
-  return toAuthProfile(ctx)
+  return {
+    user: toAuthProfile(ctx),
+    session: {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    },
+  }
 }
 
 export async function signOut(): Promise<void> {

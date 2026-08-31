@@ -5,6 +5,6 @@ import { loginSchema } from "@/lib/validators"
 
 export const POST = withHandler(async (req) => {
   const body = loginSchema.parse(await req.json())
-  const user = await authService.signIn(body.email, body.password)
-  return jsonOk({ user })
+  const { user, session } = await authService.signIn(body.email, body.password)
+  return jsonOk({ user, session })
 })

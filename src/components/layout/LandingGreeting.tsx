@@ -12,7 +12,7 @@ export function LandingGreeting({ partnerName = "MEDICULOUSHEALTHCARE PVT LTD" }
 
   return (
     <section aria-label="Greeting" className="mx-auto max-w-6xl -mt-1 px-4 pb-8 pt-2 sm:px-5">
-      <div className="rounded-[1.25rem] bg-greeting px-5 py-7 text-white sm:px-10 sm:py-10">
+      <div className="rounded-[1.25rem] bg-gradient-to-br from-[#1a3d2f] via-[#2d5a6f] to-[#3e6f94] px-5 py-7 text-white sm:px-10 sm:py-10">
         <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70 sm:text-xs">
           <span className="size-2 shrink-0 rounded-full bg-amber-400" aria-hidden />
           Mediculous · Wholesale desk

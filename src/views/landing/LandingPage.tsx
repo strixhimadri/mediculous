@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuroraField } from "@/components/layout/AuroraField"
+import { PharmaHeroVisual } from "@/components/layout/PharmaHeroVisual"
 import { SkipLink } from "@/components/layout/SkipLink"
 import { LandingHeader } from "@/components/layout/LandingHeader"
 import { LandingGreeting } from "@/components/layout/LandingGreeting"
@@ -61,8 +62,9 @@ export function LandingPage() {
       <main id="main" className="relative">
         {/* Hero */}
         <section id="home" className="mx-auto max-w-6xl scroll-mt-28 px-5 pb-6 pt-8 sm:pt-14">
-          <div className="animate-fade-up max-w-2xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white px-4 py-1.5 text-sm font-medium text-ink shadow-sm">
+          <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.95fr)] lg:gap-12">
+            <div className="animate-fade-up max-w-2xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-line bg-white/90 px-4 py-1.5 text-sm font-medium text-ink shadow-sm backdrop-blur-sm">
                 <Sparkles className="size-4 text-ink" />
                 For wholesale pharmacy teams
               </p>
@@ -72,7 +74,8 @@ export function LandingPage() {
                 <span className="text-ink">Comes First.</span>
               </h1>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-ink-soft sm:text-lg">
-              We help healthcare teams manage medicines, orders, and supplies reliably — so the right care can reach the people who need it.
+                We help healthcare teams manage medicines, orders, and supplies reliably — so the right
+                care can reach the people who need it.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button size="lg" asChild>
@@ -84,6 +87,23 @@ export function LandingPage() {
                   <Link to="/login">Sign in</Link>
                 </Button>
               </div>
+            </div>
+
+            <div className="animate-fade-up relative mx-auto w-full max-w-xl lg:max-w-none">
+              <PharmaHeroVisual
+                priority
+                variant="panel"
+                className="aspect-[4/3] w-full sm:aspect-[5/4] lg:aspect-[4/5] lg:min-h-[28rem]"
+              />
+              <div className="glass absolute bottom-4 left-4 right-4 p-4 sm:bottom-6 sm:left-6 sm:right-auto sm:max-w-[15rem]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
+                  Precision supply
+                </p>
+                <p className="mt-1 font-display text-lg leading-snug text-ink">
+                  Batch-aware inventory for modern pharma teams
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
