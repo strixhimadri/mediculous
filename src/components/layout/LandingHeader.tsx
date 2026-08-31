@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Link } from "@/lib/navigation"
-import { ChevronDown, Menu, Search, Sparkles } from "lucide-react"
+import { ChevronDown, Menu, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BrandMark } from "@/components/layout/SkipLink"
@@ -63,7 +63,6 @@ export function LandingHeader() {
             </Button>
             <Button size="sm" className="hidden min-[734px]:inline-flex" asChild>
               <Link to="/app">
-                <Sparkles className="size-3.5" />
                 Get started
                 <ChevronDown className="size-3.5 -rotate-90" />
               </Link>
@@ -108,7 +107,6 @@ export function LandingHeader() {
             </Button>
             <Button className="w-full justify-center" asChild>
               <Link to="/app" onClick={closeMenu}>
-                <Sparkles className="size-4" />
                 Get started
               </Link>
             </Button>

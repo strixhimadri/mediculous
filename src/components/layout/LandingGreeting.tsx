@@ -12,25 +12,30 @@ export function LandingGreeting({ partnerName = "MEDICULOUSHEALTHCARE PVT LTD" }
 
   return (
     <section aria-label="Greeting" className="mx-auto max-w-6xl -mt-1 px-4 pb-8 pt-2 sm:px-5">
-      <div className="rounded-[1.25rem] bg-gradient-to-br from-[#1a3d2f] via-[#2d5a6f] to-[#3e6f94] px-5 py-7 text-white sm:px-10 sm:py-10">
-        <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70 sm:text-xs">
-          <span className="size-2 shrink-0 rounded-full bg-amber-400" aria-hidden />
-          Mediculous · Wholesale desk
-        </p>
+      <div className="relative overflow-hidden rounded-[1.25rem] border border-line bg-[#141414] px-5 py-7 text-white shadow-[0_24px_60px_rgba(0,0,0,0.18)] sm:px-10 sm:py-10">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-80"
+          style={{
+            background:
+              "linear-gradient(118deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 22%, transparent 48%)",
+          }}
+          aria-hidden
+        />
+        <div className="relative">
+          <p className="pharma-label text-white/55">Mediculous · Wholesale desk</p>
 
-        <h2 className="mt-4 break-words font-display text-xl leading-snug sm:text-3xl">
-          {greeting.label}{" "}
-          <span aria-hidden className="inline-block">
-            🙏
-          </span>
-          , {partnerName}
-        </h2>
+          <h2 className="mt-4 break-words font-display text-xl leading-snug text-white sm:text-3xl">
+            {greeting.label}, {partnerName}
+          </h2>
 
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/85 sm:text-base">{greeting.message}</p>
+          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/75 sm:text-base">
+            {greeting.message}
+          </p>
 
-        <blockquote className="mt-6 max-w-xl border-l-2 border-white/25 pl-4 text-sm italic leading-relaxed text-white/75 sm:text-base">
-          “{greeting.quote}”
-        </blockquote>
+          <blockquote className="mt-6 max-w-xl border-l border-white/20 pl-4 text-sm leading-relaxed text-white/60 sm:text-base">
+            “{greeting.quote}”
+          </blockquote>
+        </div>
       </div>
     </section>
   )

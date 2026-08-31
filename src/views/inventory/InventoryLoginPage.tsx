@@ -2,12 +2,11 @@
 
 import { FormEvent, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Link } from "@/lib/navigation"
+import { Link, useSearchParams } from "@/lib/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AuroraField } from "@/components/layout/AuroraField"
-import { PharmaHeroVisual } from "@/components/layout/PharmaHeroVisual"
 import { BrandMark, SkipLink } from "@/components/layout/SkipLink"
 import { useAuth } from "@/context/AuthContext"
 import { getPostLoginPath } from "@/lib/auth/roles"
@@ -55,32 +54,11 @@ export function InventoryLoginPage() {
   }
 
   return (
-    <div className="relative min-h-svh overflow-x-clip">
+    <div className="relative min-h-svh">
       <AuroraField />
       <SkipLink />
-      <div className="relative grid min-h-svh lg:grid-cols-2">
-        <section className="relative hidden overflow-hidden lg:block">
-          <PharmaHeroVisual variant="bleed" className="absolute inset-0" />
-          <div className="relative z-10 flex h-full flex-col justify-end p-10">
-            <div className="glass max-w-sm rounded-[2rem] p-8">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">
-                Retailer portal
-              </p>
-              <h1 className="mt-2 font-display text-3xl leading-tight text-ink">
-                Your stock, organized and ready.
-              </h1>
-            </div>
-          </div>
-        </section>
-
-        <main
-          id="main"
-          className="relative flex min-h-svh items-center justify-center p-4 sm:p-8"
-        >
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-40 overflow-hidden lg:hidden">
-            <PharmaHeroVisual variant="bleed" className="h-full opacity-70" />
-          </div>
-          <form onSubmit={onSubmit} className="glass relative z-10 w-full max-w-md rounded-[2rem] p-8">
+      <main id="main" className="relative flex min-h-svh items-center justify-center p-4">
+        <form onSubmit={onSubmit} className="glass w-full max-w-md rounded-[2rem] p-8">
           <Link to="/" className="mb-6 flex items-center gap-2">
             <BrandMark />
             <span className="font-display text-lg text-ink">My Stock</span>
@@ -112,9 +90,8 @@ export function InventoryLoginPage() {
               {submitting ? "Signing in…" : "Sign in"}
             </Button>
           </div>
-          </form>
-        </main>
-      </div>
+        </form>
+      </main>
     </div>
   )
 }

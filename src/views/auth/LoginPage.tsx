@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { AuroraField } from "@/components/layout/AuroraField"
-import { PharmaHeroVisual } from "@/components/layout/PharmaHeroVisual"
 import { SkipLink, BrandMark } from "@/components/layout/SkipLink"
 import { useAuth } from "@/context/AuthContext"
 import { getPostLoginPath } from "@/lib/auth/roles"
@@ -51,41 +50,35 @@ export function LoginPage() {
       <AuroraField />
       <SkipLink />
       <div className="relative grid min-h-svh lg:grid-cols-2">
-        <section className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-between">
-          <PharmaHeroVisual variant="bleed" className="absolute inset-0" priority />
-          <div className="relative z-10 flex flex-col justify-between p-10">
-            <Link to="/" className="flex items-center gap-2.5">
-              <BrandMark />
-              <span className="font-display text-xl text-ink">Mediculous</span>
-            </Link>
-            <div className="glass max-w-md rounded-[2rem] p-8">
-              <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-sm font-medium text-ink backdrop-blur-sm">
-                <Sparkles className="size-4" />
-                B2B wholesale platform
-              </p>
-              <h1 className="mt-5 font-display text-4xl leading-tight text-ink">
-                Stock, orders, and dispatch in one secure portal.
-              </h1>
-              <p className="mt-4 text-sm leading-relaxed text-ink-soft">
-                Admin operators manage inventory and approve franchise orders. Retailers browse available
-                medicines and place orders online.
-              </p>
-            </div>
-            <p className="text-xs text-ink-soft">Role-based access · encrypted sessions</p>
+        <section className="hidden flex-col justify-between p-10 lg:flex">
+          <Link to="/" className="flex items-center gap-2.5">
+            <BrandMark />
+            <span className="font-display text-xl text-ink">Mediculous</span>
+          </Link>
+          <div className="glass max-w-md rounded-[2rem] p-8">
+            <p className="inline-flex items-center gap-2 rounded-full bg-canvas px-3 py-1 text-sm font-medium text-ink">
+              <Sparkles className="size-4" />
+              B2B wholesale platform
+            </p>
+            <h1 className="mt-5 font-display text-4xl leading-tight text-ink">
+              Stock, orders, and dispatch in one secure portal.
+            </h1>
+            <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+              Admin operators manage inventory and approve franchise orders. Retailers browse available
+              medicines and place orders online.
+            </p>
           </div>
+          <p className="text-xs text-ink-soft">Role-based access · encrypted sessions</p>
         </section>
 
-        <section className="relative flex flex-col px-4 py-8 sm:px-8">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-48 overflow-hidden lg:hidden">
-            <PharmaHeroVisual variant="bleed" className="h-full opacity-70" />
-          </div>
-          <header className="relative z-10 mb-8 flex items-center lg:hidden">
+        <section className="flex flex-col px-4 py-8 sm:px-8">
+          <header className="mb-8 flex items-center lg:hidden">
             <Link to="/" className="flex items-center gap-2">
               <BrandMark />
               <span className="font-display text-lg text-ink">Mediculous</span>
             </Link>
           </header>
-          <main id="main" className="relative z-10 flex flex-1 items-center justify-center">
+          <main id="main" className="flex flex-1 items-center justify-center">
             <form onSubmit={onSubmit} className="glass w-full max-w-md rounded-[2rem] p-8">
               <h2 className="font-display text-2xl text-ink">Sign in</h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">
